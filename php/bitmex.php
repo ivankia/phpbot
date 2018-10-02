@@ -602,14 +602,14 @@ class bitmex extends Exchange {
             $this->check_required_credentials();
             $nonce = (string) $this->nonce ();
             $auth = $method . $query . $nonce;
-            if ($method === 'POST' || $method === 'PUT') {
+            if ($method === 'POST' || $method === 'PUT' || $method == 'DELETE') {
                 if ($params) {
                     $body = $this->json ($params);
                     $auth .= $body;
                 }
             }
             $headers = array (
-                'Content-Type' => $headers['Content-Type'] ?: 'application/json',
+                'Content-Type' => isset($headers['Content-Type']) ? $headers['Content-Type'] : 'application/json',
                 'api-nonce' => $nonce,
                 'api-key' => $this->apiKey,
                 'api-signature' => $this->hmac ($this->encode ($auth), $this->encode ($this->secret)),
@@ -635,4 +635,13 @@ class bitmex extends Exchange {
 
         return $result;
     }
+
+    public function fixPrice($value, $appendix = 0.5) {
+        if ($value - round($value)) {
+            return round($value) + $appendix;
+        }
+
+        return $value;
+    }
 }
+

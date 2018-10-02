@@ -25,10 +25,10 @@ $orderBook = $exchange->fetchOrderBook($symbol, $orderBookWidth);
 $longPrice  = $orderBook['bids'][2][0];
 $shortPrice = $orderBook['asks'][2][0];
 
-$longSL  = fixPrice($longPrice - $longPrice * $fee, 0.5);
-$shortSL = fixPrice($shortPrice + $shortPrice * $fee, -0.5);
-$longTP  = fixPrice($longPrice + $longPrice * 0.01, 0.5);
-$shortTP = fixPrice($shortPrice - $shortPrice * 0.01, -0.5);
+$longSL  = $exchange->fixPrice($longPrice - $longPrice * $fee, 0.5);
+$shortSL = $exchange->fixPrice($shortPrice + $shortPrice * $fee, -0.5);
+$longTP  = $exchange->fixPrice($longPrice + $longPrice * 0.01, 0.5);
+$shortTP = $exchange->fixPrice($shortPrice - $shortPrice * 0.01, -0.5);
 
 $paramsLongStopLoss = [
     'execInst' => 'Close,LastPrice,ParticipateDoNotInitiate',
@@ -38,9 +38,9 @@ $paramsLongStopLoss = [
     'orderQty' => $amount,
     'side' => 'Sell',
 //    'price' => 6000, //$longSL
-    'price' => $longSL+100,
+    'price' => $longSL,
 //    'stopPx' => 6000, //$longSL
-    'stopPx' => $longSL+100,
+    'stopPx' => $longSL,
     'symbol' => 'XBTUSD',
     'timeInForce' => 'GoodTillCancel',
 ];
@@ -66,9 +66,9 @@ $paramsLongTakeProfit = [
     'orderQty' => $amount,
     'side' => 'Sell',
 //    'price' => 6999, // $lognTP
-    'price' => $longTP-100,
+    'price' => $longTP,
 //    'stopPx' => 7000, //$lognTP
-    'stopPx' => $longTP-100,
+    'stopPx' => $longTP,
     'symbol' => 'XBTUSD',
     'timeInForce' => 'GoodTillCancel'
 ];
@@ -89,10 +89,7 @@ $result = $exchange->createOrderBulk($params);
 
 if (!isset($result) || !count($result) == 3) {
     if (count($result) > 0) {
-        foreach ($result as $order) {
-            $exchange->deleteAllOrders(['symbol' => $symbol, ['Content-Type' => 'application/x-www-form-urlencoded']]);
-//            $exchange->cancel_order($order['orderID'], $symbol);
-        }
+        $exchange->deleteAllOrders(['symbol' => 'XBTUSD']);
     }
 
     echo "Wrong orders!\n";
@@ -107,17 +104,9 @@ $orderStopLoss  = $exchange->fetch_order($stopLossId, $symbol, ['ordStatus' => '
 $orderTakeProfit = $exchange->fetch_order($takeProfitId, $symbol, ['ordStatus' => 'Canceled']);
 
 if (!empty($orderStopLoss) || !empty($orderTakeProfit)) {
-    $result = $exchange->fetch('https://testnet.bitmex.com/api/v1/order/all', 'DELETE');
-    echo 'SL/TP Canceled' . "\n" . $result . "\n";
-    die('Exit');
+    $result = $exchange->deleteAllOrders(['symbol' => 'XBTUSD']);
+
+    echo 'All orders canceled' . "\n";
 }
 
 echo 'Done!' . "\n";
-
-function fixPrice($value, $appendix = 0.5) {
-    if ($value - round($value)) {
-        return round($value) + $appendix;
-    }
-
-    return $value;
-}
