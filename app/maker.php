@@ -75,7 +75,7 @@ $paramsLongTakeProfit = [
 
 $stopLossId = null;
 $takeProfitId = null;
-$orderPosition = null;
+$orderPositionId = null;
 
 $params = [
     'orders' => [
@@ -85,7 +85,14 @@ $params = [
     ]
 ];
 
+echo 'Set order: ' . $longPrice . "\n";
+echo 'Set TP: ' . $longTP . "\n";
+echo 'Set SL: ' . $longSL . "\n";
+
 $result = $exchange->createOrderBulk($params);
+
+echo 'Bulk orders: ' . "\n";
+echo json_encode($result) . "\n";
 
 if (!isset($result) || !count($result) == 3) {
     if (count($result) > 0) {
@@ -96,17 +103,39 @@ if (!isset($result) || !count($result) == 3) {
     die();
 }
 
-$stopLossId    = $result[0]['orderID'];
-$takeProfitId  = $result[0]['orderID'];
-$orderPosition = $result[0]['orderID'];
+$stopLossId      = $result[0]['orderID'];
+$takeProfitId    = $result[0]['orderID'];
+$orderPositionId = $result[0]['orderID'];
 
-$orderStopLoss  = $exchange->fetch_order($stopLossId, $symbol, ['ordStatus' => 'Canceled']);
-$orderTakeProfit = $exchange->fetch_order($takeProfitId, $symbol, ['ordStatus' => 'Canceled']);
+$orderStopLoss  = $exchange->fetch_order($stopLossId, $symbol);
+$orderTakeProfit = $exchange->fetch_order($takeProfitId, $symbol);
 
-if (!empty($orderStopLoss) || !empty($orderTakeProfit)) {
-    $result = $exchange->deleteAllOrders(['symbol' => 'XBTUSD']);
-
+if (!isOrderAndStopsApplied($symbol, $orderPositionId, $stopLossId, $takeProfitId)) {
     echo 'All orders canceled' . "\n";
+    die();
 }
 
-echo 'Done!' . "\n";
+echo 'Orders set' . "\n";
+
+function isOrderAndStopsApplied($symbol, $orderPositionId, $stopLossId, $takeProfitId) {
+    global $exchange;
+
+    echo "Check losses status...\n";
+
+    $orderStopLoss  = $exchange->fetch_order($stopLossId, $symbol);
+    $orderTakeProfit = $exchange->fetch_order($takeProfitId, $symbol);
+
+    if ((empty($orderStopLoss) || !isset($orderStopLoss['info']['ordStatus'])) &&
+        (empty($orderTakeProfit) || !isset($orderTakeProfit['info']['ordStatus']))) {
+        echo "Orders are not processed...\n";
+        return isOrderAndStopsApplied($symbol, $orderPositionId, $stopLossId, $takeProfitId);
+    }
+
+    if ($orderStopLoss['info']['ordStatus'] == 'Canceled' && $orderTakeProfit['info']['ordStatus'] == 'Canceled') {
+        echo "Orders are canceled...\n";
+
+        return false;
+    }
+
+    return true;
+}
