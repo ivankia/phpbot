@@ -1009,12 +1009,13 @@ class Exchange {
         // it's a stub function, does nothing in base code
     }
 
-    public function fetch ($url, $method = 'GET', $headers = null, $body = null) {
-
+    public function fetch ($url, $method = 'GET', $headers = [], $body = null) {
         if ($this->enableRateLimit)
             $this->throttle ();
 
-        $headers = array_merge ($this->headers, $headers ? $headers : array ());
+        if (is_array($headers) || is_object($headers)) {
+            $headers = array_merge($this->headers, $headers ? $headers : array());
+        }
 
         if (strlen ($this->proxy))
             $headers['Origin'] = $this->origin;

@@ -36,7 +36,7 @@ class bitmex extends Exchange {
             'urls' => array (
                 'test' => 'https://testnet.bitmex.com',
                 'logo' => 'https://user-images.githubusercontent.com/1294454/27766319-f653c6e6-5ed4-11e7-933d-f0bc3699ae8f.jpg',
-                'api' => 'https://www.bitmex.com',
+                'api' => 'https://testnet.bitmex.com',
                 'www' => 'https://www.bitmex.com',
                 'doc' => array (
                     'https://www.bitmex.com/app/apiOverview',
@@ -609,12 +609,30 @@ class bitmex extends Exchange {
                 }
             }
             $headers = array (
-                'Content-Type' => 'application/json',
+                'Content-Type' => $headers['Content-Type'] ?: 'application/json',
                 'api-nonce' => $nonce,
                 'api-key' => $this->apiKey,
                 'api-signature' => $this->hmac ($this->encode ($auth), $this->encode ($this->secret)),
             );
         }
         return array ( 'url' => $url, 'method' => $method, 'body' => $body, 'headers' => $headers );
+    }
+
+    public function createOrderBulk($params) {
+        $result = $this->request('order/bulk', 'private', 'POST', $params, []);
+
+        return $result;
+    }
+
+    public function deleteAllOrders($params) {
+        $result = $this->request('order/all', 'private', 'DELETE', $params, []);
+
+        return $result;
+    }
+
+    public function checkExecution($params) {
+        $result = $this->request('execution', 'private', 'GET', $params, []);
+
+        return $result;
     }
 }
